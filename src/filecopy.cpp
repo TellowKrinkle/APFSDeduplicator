@@ -16,7 +16,7 @@ void apfsdedup::copyFile(const boost::filesystem::path& from, const boost::files
 
 	// Save containing folder metadata to preserve its modification time
 	struct stat parentInfo;
-	if (stat(parent.c_str(), &parentInfo) == -1) {
+	if (stat((parent/".").c_str(), &parentInfo) == -1) {
 		throwIOException(std::string{"Failed to stat "} + parent.string());
 	}
 
