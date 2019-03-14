@@ -46,7 +46,7 @@ static void multithreadFunction(
 				if (*iter != boost::filesystem::recursive_directory_iterator()) {
 					auto entry = (**iter);
 					(*iter)++;
-					if (boost::filesystem::is_regular(entry)) {
+					if (boost::filesystem::is_regular(entry) && !boost::filesystem::is_symlink(entry)) {
 						path = entry.path();
 						return;
 					}
@@ -139,7 +139,7 @@ int main(int argc, char const * const argv[]) {
 	for (int i = start; i < argc; i++) {
 		boost::filesystem::recursive_directory_iterator a(argv[i]);
 		for (auto file : boost::filesystem::recursive_directory_iterator(argv[i])) {
-			if (!boost::filesystem::is_regular(file)) { continue; }
+			if (!boost::filesystem::is_regular(file) || boost::filesystem::is_symlink(file)) { continue; }
 			boost::filesystem::path path = file.path();
 			SHA256Hash hash = SHA256Hash::fromFile(path.c_str());
 			auto idx = map.find(hash);
