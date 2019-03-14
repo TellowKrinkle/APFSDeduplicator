@@ -8,12 +8,26 @@
 #include "filecopy.hpp"
 #include "ioexception.hpp"
 #include <sys/fcntl.h>
+#include <sys/stat.h>
 
 using namespace apfsdedup;
 
 static std::atomic<boost::uintmax_t> duplicatedBytes{0};
 static UnfairLock printLock;
 static bool action = false;
+
+/// Decides whether the copy should go the opposite direction
+/// (e.g. to prioritize copying a HFS-compressed file over a non-compressed one)
+static bool shouldSwap(const char *from, const char *to) {
+	struct stat fromStat;
+	struct stat toStat;
+	if (stat(from, &fromStat) < 0) { return false; }
+	if (stat(to, &toStat) < 0) { return false; }
+	if ((toStat.st_flags & UF_COMPRESSED) && !(fromStat.st_flags & UF_COMPRESSED)) {
+		return true;
+	}
+	return false;
+}
 
 static void multithreadFunction(
 	int argc,
@@ -79,8 +93,14 @@ static void multithreadFunction(
 			duplicatedBytes.fetch_add(boost::filesystem::file_size(other));
 			try {
 				if (action) {
-					iterLock->withLock([&other, &path]() {
-						copyFile(other.c_str(), path.c_str());
+					bool swap = shouldSwap(other.c_str(), path.c_str());
+					iterLock->withLock([&other, &path, swap]() {
+						if (swap) {
+							copyFile(path, other);
+						}
+						else {
+							copyFile(other, path);
+						}
 					});
 				}
 				else {
@@ -126,7 +146,12 @@ int main(int argc, char const * const argv[]) {
 			if (idx != map.end()) {
 				duplicatedBytes.fetch_add(boost::filesystem::file_size(idx->second));
 				if (action) {
-					copyFile(idx->second, path);
+					if (shouldSwap(idx->second.c_str(), path.c_str())) {
+						copyFile(path, idx->second);
+					}
+					else {
+						copyFile(idx->second, path);
+					}
 				}
 				else {
 					std::cout << path.string() << " == " << idx->second.string() << std::endl;
