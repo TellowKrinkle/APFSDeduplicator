@@ -59,8 +59,8 @@ void apfsdedup::copyFile(const boost::filesystem::path& from, const boost::files
 		flags |= (fromStat.st_flags & UF_COMPRESSED);
 		(void)fchflags(openTmp.fd(), flags);
 
-		(void)fchown(openTmp.fd(), fromStat.st_uid, fromStat.st_gid);
-		(void)fchmod(openTmp.fd(), fromStat.st_mode & ~S_IFMT);
+		(void)fchown(openTmp.fd(), toStat.st_uid, toStat.st_gid);
+		(void)fchmod(openTmp.fd(), toStat.st_mode & ~S_IFMT);
 
 		struct attrlist attrlist;
 		struct {
