@@ -38,7 +38,7 @@ void apfsdedup::copyFile(const boost::filesystem::path& from, const boost::files
 	// Scope for files to be autoclosed
 	{
 		// copyfile breaks when you try to use COPYFILE_STAT from a compressed file over an uncompressed one
-		// copyfile also decompresses compressed files if you let it open them itself because it uses O_RDWR.  Open the files for it with O_RDONLY
+		// copyfile also decompresses compressed files if you let it open them itself because it uses O_WRONLY.  Open the files for it with O_RDONLY
 		file openTo(to.c_str(), O_RDONLY), openTmp(tmpFile.c_str(), O_RDONLY);
 		if (fcopyfile(openTo.fd(), openTmp.fd(), 0, COPYFILE_ACL | COPYFILE_XATTR) < 0) {
 			throwIOException(std::string{"Failed to copy metadata from "} + to.string() + " to " + tmpFile.string());
