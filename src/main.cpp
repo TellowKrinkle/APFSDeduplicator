@@ -42,10 +42,19 @@ static void multithreadFunction(
 	while (true) {
 		boost::filesystem::path path;
 		iterLock->withLock([&path, &done, iter, next, argc, argv]() {
+			boost::filesystem::recursive_directory_iterator endIter;
 			while (true) {
-				if (*iter != boost::filesystem::recursive_directory_iterator()) {
-					auto entry = (**iter);
-					(*iter)++;
+				if (*iter != endIter) {
+					auto entry = **iter;
+					boost::system::error_code ec, noError;
+					while (true) {
+						iter->increment(ec);
+						if (ec == noError || *iter == endIter) { break; }
+						printLock.withLock([&entry, &ec]() {
+							std::cerr << "Failed to open " << entry.path().string() << ": " << ec << std::endl;
+						});
+						iter->pop();
+					}
 					auto status = boost::filesystem::symlink_status(entry);
 					if (boost::filesystem::is_regular(status) && !boost::filesystem::is_symlink(status)) {
 						path = entry.path();
